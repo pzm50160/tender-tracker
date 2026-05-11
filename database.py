@@ -13,16 +13,16 @@ def _get_db_url():
         return ""
 
 
-DATABASE_URL = _get_db_url()
-_PG = bool(DATABASE_URL)
-PH = "%s" if _PG else "?"
+def _ph():
+    return "%s" if _get_db_url() else "?"
 
 
 def get_conn():
-    if _PG:
+    db_url = _get_db_url()
+    if db_url:
         import psycopg2
         import psycopg2.extras
-        return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        return psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
     import sqlite3
     from config import DB_PATH
     conn = sqlite3.connect(DB_PATH)
@@ -31,11 +31,12 @@ def get_conn():
 
 
 def init_db():
+    pg = bool(_get_db_url())
     conn = get_conn()
     cur = conn.cursor()
-    pk = "SERIAL" if _PG else "INTEGER"
-    ai = "" if _PG else " AUTOINCREMENT"
-    num = "NUMERIC" if _PG else "REAL"
+    pk = "SERIAL" if pg else "INTEGER"
+    ai = "" if pg else " AUTOINCREMENT"
+    num = "NUMERIC" if pg else "REAL"
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS tenders (
             id               {pk} PRIMARY KEY{ai},
@@ -68,6 +69,7 @@ def init_db():
 
 
 def upsert_tender(t: dict):
+    ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
     try:
@@ -77,7 +79,7 @@ def upsert_tender(t: dict):
             t.get("publish_date"), t.get("deadline"), t.get("detail_url"),
             t.get("matched_keyword"), t.get("fetched_at"),
         )
-        ph12 = ",".join([PH] * 12)
+        ph12 = ",".join([ph] * 12)
         cur.execute(f"""
             INSERT INTO tenders (
                 tender_id, tender_name, agency, tender_case_no,
@@ -104,18 +106,19 @@ def upsert_tender(t: dict):
 
 
 def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False):
+    ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
     sql = "SELECT * FROM tenders WHERE 1=1"
     params = []
     if date_from:
-        sql += f" AND publish_date >= {PH}"
+        sql += f" AND publish_date >= {ph}"
         params.append(date_from)
     if date_to:
-        sql += f" AND publish_date <= {PH}"
+        sql += f" AND publish_date <= {ph}"
         params.append(date_to)
     if keyword:
-        sql += f" AND (tender_name LIKE {PH} OR matched_keyword LIKE {PH} OR agency LIKE {PH})"
+        sql += f" AND (tender_name LIKE {ph} OR matched_keyword LIKE {ph} OR agency LIKE {ph})"
         params += [f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"]
     if unread_only:
         sql += " AND is_read = 0"
@@ -127,9 +130,10 @@ def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False):
 
 
 def mark_read(tender_id: str):
+    ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(f"UPDATE tenders SET is_read = 1 WHERE tender_id = {PH}", (tender_id,))
+    cur.execute(f"UPDATE tenders SET is_read = 1 WHERE tender_id = {ph}", (tender_id,))
     conn.commit()
     conn.close()
 
@@ -143,10 +147,11 @@ def mark_all_read():
 
 
 def log_fetch(keyword: str, count: int, status: str):
+    ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(
-        f"INSERT INTO fetch_log (fetched_at, keyword, count, status) VALUES ({PH},{PH},{PH},{PH})",
+        f"INSERT INTO fetch_log (fetched_at, keyword, count, status) VALUES ({ph},{ph},{ph},{ph})",
         (datetime.now().isoformat(), keyword, count, status)
     )
     conn.commit()
@@ -154,9 +159,10 @@ def log_fetch(keyword: str, count: int, status: str):
 
 
 def get_fetch_logs(limit=100):
+    ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute(f"SELECT * FROM fetch_log ORDER BY id DESC LIMIT {PH}", (limit,))
+    cur.execute(f"SELECT * FROM fetch_log ORDER BY id DESC LIMIT {ph}", (limit,))
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
