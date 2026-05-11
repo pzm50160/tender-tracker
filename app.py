@@ -113,7 +113,9 @@ m1, m2, m3, m4 = st.columns(4)
 m1.metric("標案筆數", len(tenders))
 m2.metric("未讀", unread_count)
 m3.metric("關鍵字數", len(keywords))
-m4.metric("最新更新", date.today().strftime("%Y/%m/%d"))
+logs = get_fetch_logs(1)
+last_update = logs[0]["fetched_at"][:10] if logs else "尚無記錄"
+m4.metric("最新更新", last_update)
 
 st.divider()
 
