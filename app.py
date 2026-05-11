@@ -190,6 +190,7 @@ with tab_stats:
             pc.columns = ["採購性質", "筆數"]
             st.bar_chart(pc.set_index("採購性質"))
 
+        df["budget"] = pd.to_numeric(df["budget"], errors="coerce")
         bd = df[df["budget"].notna()].nlargest(15, "budget")[["tender_name", "budget"]]
         if not bd.empty:
             st.subheader("前 15 高預算標案")
