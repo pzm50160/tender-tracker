@@ -154,7 +154,7 @@ def upsert_tender(t: dict):
         conn.close()
 
 
-def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False):
+def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False, active_keywords=None):
     ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
@@ -171,6 +171,10 @@ def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False):
         params += [f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"]
     if unread_only:
         sql += " AND is_read = 0"
+    if active_keywords:
+        placeholders = ",".join([ph] * len(active_keywords))
+        sql += f" AND matched_keyword IN ({placeholders})"
+        params += list(active_keywords)
     sql += " ORDER BY publish_date DESC, fetched_at DESC"
     cur.execute(sql, params)
     rows = cur.fetchall()
