@@ -169,8 +169,10 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
         if not is_budget_ok(budget):
             continue
 
-        # 開標時間
+        # 開標時間（只取含 / 的日期格式，避免抓到「檢視」按鈕文字）
         opening_date_roc = cells[9].get_text(strip=True) if len(cells) > 9 else ""
+        if opening_date_roc and "/" not in opening_date_roc:
+            opening_date_roc = ""
         opening_date = roc_to_western(opening_date_roc) if opening_date_roc else ""
 
         # 唯一鍵：機關+案號+招標次數
