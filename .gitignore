@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+data/tenders.db
+data/*.html
+python-portable/
+.env
+.streamlit/secrets.toml
+程式更新.zip

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:web.pcc.gov.tw)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(pip install *)"
+    ]
+  }
+}
