@@ -150,8 +150,8 @@ with tab_list:
     📋 {t["tender_case_no"] or "—"} &nbsp;&nbsp;
     💰 {budget_str} &nbsp;&nbsp;
     📅 公告：{t["publish_date"] or "—"} &nbsp;&nbsp;
-    🔔 開標：{t.get("opening_date") or "—"} &nbsp;&nbsp;
-    ⏰ 截止：{t["deadline"] or "—"}{url_part}
+    ⏰ 截止：{t["deadline"] or "—"} &nbsp;&nbsp;
+    🔔 開標：{t.get("opening_date") or "—"}{url_part}
   </div>
 </div>""", unsafe_allow_html=True)
 
