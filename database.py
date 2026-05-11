@@ -30,6 +30,36 @@ def get_conn():
     return conn
 
 
+def get_keywords():
+    import json
+    from config import KEYWORDS as DEFAULT_KEYWORDS
+    conn = get_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT value FROM settings WHERE key = 'keywords'")
+        row = cur.fetchone()
+        if row:
+            return json.loads(row["value"])
+    except Exception:
+        pass
+    finally:
+        conn.close()
+    return DEFAULT_KEYWORDS
+
+
+def save_keywords(keywords: list):
+    import json
+    ph = _ph()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f"""
+        INSERT INTO settings (key, value) VALUES ({ph}, {ph})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    """, ("keywords", json.dumps(keywords, ensure_ascii=False)))
+    conn.commit()
+    conn.close()
+
+
 def init_db():
     pg = bool(_get_db_url())
     conn = get_conn()
@@ -37,6 +67,12 @@ def init_db():
     pk = "SERIAL" if pg else "INTEGER"
     ai = "" if pg else " AUTOINCREMENT"
     num = "NUMERIC" if pg else "REAL"
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS tenders (
             id               {pk} PRIMARY KEY{ai},

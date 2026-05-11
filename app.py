@@ -6,8 +6,8 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-from database import init_db, get_tenders, mark_read, mark_all_read, get_fetch_logs, get_stats
-from config import KEYWORDS, PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
+from database import init_db, get_tenders, mark_read, mark_all_read, get_fetch_logs, get_stats, get_keywords, save_keywords
+from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
 
 st.set_page_config(
     page_title="健檢標案追蹤",
@@ -64,9 +64,20 @@ with st.sidebar:
         st.session_state["s_to"]   = search_to.strftime("%Y/%m/%d")
 
     st.divider()
-    st.caption("監控關鍵字")
-    for kw in KEYWORDS:
-        st.caption(f"  • {kw}")
+    st.subheader("監控關鍵字")
+    keywords = get_keywords()
+    for kw in keywords:
+        col_kw, col_del = st.columns([4, 1])
+        col_kw.caption(f"• {kw}")
+        if col_del.button("✕", key=f"del_{kw}"):
+            keywords.remove(kw)
+            save_keywords(keywords)
+            st.rerun()
+    new_kw = st.text_input("新增關鍵字", placeholder="輸入後按 Enter", label_visibility="collapsed")
+    if new_kw and new_kw not in keywords:
+        keywords.append(new_kw)
+        save_keywords(keywords)
+        st.rerun()
     if PROCUREMENT_TYPES:
         st.caption(f"採購性質: {', '.join(PROCUREMENT_TYPES)}")
 

@@ -10,8 +10,8 @@ import urllib3
 from bs4 import BeautifulSoup
 from datetime import datetime, date, timedelta
 
-from config import KEYWORDS, PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
-from database import upsert_tender, log_fetch, init_db
+from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
+from database import upsert_tender, log_fetch, init_db, get_keywords
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -255,6 +255,8 @@ def run_scraper(start_date: str = None, end_date: str = None) -> int:
         start_date = (today - timedelta(days=7)).strftime("%Y/%m/%d")
     if not end_date:
         end_date = today.strftime("%Y/%m/%d")
+
+    KEYWORDS = get_keywords()
 
     print(f"\n{'='*55}")
     print(f"搜尋日期: {start_date} ~ {end_date}")
