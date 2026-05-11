@@ -99,17 +99,6 @@ if st.session_state.get("do_search"):
 # ── 主畫面 ───────────────────────────────────────────────
 st.title("政府採購｜健檢標案追蹤系統")
 
-stats = get_stats()
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("資料庫總筆數", stats["total"])
-m2.metric("未讀", stats["unread"])
-m3.metric("關鍵字數", len(get_keywords()))
-m4.metric("最新更新", date.today().strftime("%Y/%m/%d"))
-
-st.divider()
-
-tab_list, tab_table, tab_stats, tab_log = st.tabs(["卡片檢視", "表格 / 匯出", "統計", "搜尋記錄"])
-
 # 取得資料
 tenders = get_tenders(
     date_from=date_from.strftime("%Y/%m/%d"),
@@ -118,6 +107,17 @@ tenders = get_tenders(
     unread_only=unread_only,
     active_keywords=keywords,
 )
+
+unread_count = sum(1 for t in tenders if not t["is_read"])
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("標案筆數", len(tenders))
+m2.metric("未讀", unread_count)
+m3.metric("關鍵字數", len(keywords))
+m4.metric("最新更新", date.today().strftime("%Y/%m/%d"))
+
+st.divider()
+
+tab_list, tab_table, tab_stats, tab_log = st.tabs(["卡片檢視", "表格 / 匯出", "統計", "搜尋記錄"])
 
 
 # ── 卡片檢視 ─────────────────────────────────────────────
