@@ -73,8 +73,9 @@ def make_session() -> requests.Session:
 
 
 def build_params(keyword: str, start_date: str, end_date: str,
-                 page_param: str = "", procurement_type: str = "") -> dict:
-    """建立搜尋 GET 參數"""
+                 page_param: str = "", procurement_type: str = "",
+                 search_field: str = "tenderName") -> dict:
+    """建立搜尋 GET 參數，search_field: tenderName | orgName"""
     params = {
         "pageSize": "100",
         "firstSearch": "true",
@@ -82,10 +83,11 @@ def build_params(keyword: str, start_date: str, end_date: str,
         "isBinding": "N",
         "isLogIn": "N",
         "level_1": "on",
-        "orgName": "", "orgId": "", "tenderId": "",
+        "orgName":  keyword if search_field == "orgName" else "",
+        "orgId": "", "tenderId": "",
         "tenderType": "TENDER_DECLARATION",
         "tenderWay": "TENDER_WAY_ALL_DECLARATION",
-        "tenderName": keyword,
+        "tenderName": keyword if search_field == "tenderName" else "",
         "dateType": "isDate",
         "tenderStartDate": start_date,
         "tenderEndDate": end_date,
@@ -93,7 +95,6 @@ def build_params(keyword: str, start_date: str, end_date: str,
         "policyAdvocacy": "",
     }
     if page_param:
-        # DisplayTag 分頁參數格式: d-XXXX-p=2
         key, val = page_param.split("=")
         params[key] = val
     return params
@@ -168,6 +169,10 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
         if not is_budget_ok(budget):
             continue
 
+        # 開標時間
+        opening_date_roc = cells[9].get_text(strip=True) if len(cells) > 9 else ""
+        opening_date = roc_to_western(opening_date_roc) if opening_date_roc else ""
+
         # 唯一鍵：機關+案號+招標次數
         uid = f"{agency}_{tender_id}_{bid_round}"[:120]
 
@@ -181,6 +186,7 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
             "budget": budget,
             "publish_date": publish_date,
             "deadline": deadline,
+            "opening_date": opening_date,
             "detail_url": detail_url,
             "matched_keyword": keyword,
             "fetched_at": fetched_at,
@@ -203,9 +209,10 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
     return results, next_page_param
 
 
-def search_keyword(session: requests.Session, keyword: str,
-                   start_date: str, end_date: str) -> list[dict]:
-    """搜尋單一關鍵字所有頁，回傳標案清單"""
+def search_by_field(session: requests.Session, keyword: str,
+                    start_date: str, end_date: str,
+                    search_field: str = "tenderName") -> list[dict]:
+    """搜尋單一欄位的所有頁，回傳標案清單"""
     all_results = []
     fetched_at = datetime.now().isoformat()
     page_param = ""
@@ -213,7 +220,8 @@ def search_keyword(session: requests.Session, keyword: str,
     first_search = True
 
     while True:
-        params = build_params(keyword, start_date, end_date, page_param)
+        params = build_params(keyword, start_date, end_date, page_param,
+                              search_field=search_field)
         if not first_search:
             params["firstSearch"] = "false"
 
@@ -226,7 +234,7 @@ def search_keyword(session: requests.Session, keyword: str,
 
         page_results, next_param = parse_page(resp.text, keyword, fetched_at)
         all_results.extend(page_results)
-        print(f"    第{page_num}頁: {len(page_results)} 筆")
+        print(f"    [{search_field}] 第{page_num}頁: {len(page_results)} 筆")
 
         if not next_param or not page_results:
             break
@@ -236,10 +244,23 @@ def search_keyword(session: requests.Session, keyword: str,
         page_num += 1
         time.sleep(1)
 
-        if page_num > 30:  # 最多 30 頁（3000 筆）
+        if page_num > 30:
             break
 
     return all_results
+
+
+def search_keyword(session: requests.Session, keyword: str,
+                   start_date: str, end_date: str) -> list[dict]:
+    """搜尋標案名稱 + 機關名稱，合併去重後回傳"""
+    seen = {}
+    for field in ("tenderName", "orgName"):
+        results = search_by_field(session, keyword, start_date, end_date, field)
+        for r in results:
+            if r["tender_id"] not in seen:
+                seen[r["tender_id"]] = r
+        time.sleep(0.5)
+    return list(seen.values())
 
 
 def run_scraper(start_date: str = None, end_date: str = None) -> int:

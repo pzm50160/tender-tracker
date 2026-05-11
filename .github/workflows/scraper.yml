@@ -1,0 +1,23 @@
+name: 自動搜尋標案
+
+on:
+  schedule:
+    - cron: '0 23 * * *'   # 台灣時間 07:00
+    - cron: '0 4 * * *'    # 台灣時間 12:00
+    - cron: '0 13 * * *'   # 台灣時間 21:00
+  workflow_dispatch:         # 也可手動觸發
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+      - name: 執行爬蟲（近 7 天）
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scraper.py

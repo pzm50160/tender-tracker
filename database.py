@@ -85,12 +85,24 @@ def init_db():
             budget           {num},
             publish_date     TEXT,
             deadline         TEXT,
+            opening_date     TEXT,
             detail_url       TEXT,
             matched_keyword  TEXT,
             fetched_at       TEXT,
             is_read          INTEGER DEFAULT 0
         )
     """)
+    # 遷移：為舊資料表補欄位
+    if pg:
+        try:
+            cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS opening_date TEXT")
+        except Exception:
+            conn.rollback()
+    else:
+        try:
+            cur.execute("ALTER TABLE tenders ADD COLUMN opening_date TEXT")
+        except Exception:
+            pass
     cur.execute(f"""
         CREATE TABLE IF NOT EXISTS fetch_log (
             id         {pk} PRIMARY KEY{ai},
@@ -112,17 +124,17 @@ def upsert_tender(t: dict):
         vals = (
             t["tender_id"], t.get("tender_name"), t.get("agency"), t.get("tender_case_no"),
             t.get("procurement_type"), t.get("tender_way"), t.get("budget"),
-            t.get("publish_date"), t.get("deadline"), t.get("detail_url"),
-            t.get("matched_keyword"), t.get("fetched_at"),
+            t.get("publish_date"), t.get("deadline"), t.get("opening_date"),
+            t.get("detail_url"), t.get("matched_keyword"), t.get("fetched_at"),
         )
-        ph12 = ",".join([ph] * 12)
+        ph13 = ",".join([ph] * 13)
         cur.execute(f"""
             INSERT INTO tenders (
                 tender_id, tender_name, agency, tender_case_no,
                 procurement_type, tender_way, budget,
-                publish_date, deadline, detail_url,
+                publish_date, deadline, opening_date, detail_url,
                 matched_keyword, fetched_at
-            ) VALUES ({ph12})
+            ) VALUES ({ph13})
             ON CONFLICT (tender_id) DO UPDATE SET
                 tender_name      = EXCLUDED.tender_name,
                 agency           = EXCLUDED.agency,
@@ -132,6 +144,7 @@ def upsert_tender(t: dict):
                 budget           = EXCLUDED.budget,
                 publish_date     = EXCLUDED.publish_date,
                 deadline         = EXCLUDED.deadline,
+                opening_date     = EXCLUDED.opening_date,
                 detail_url       = EXCLUDED.detail_url,
                 matched_keyword  = EXCLUDED.matched_keyword,
                 fetched_at       = EXCLUDED.fetched_at
