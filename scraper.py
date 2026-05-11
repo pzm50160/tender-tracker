@@ -252,38 +252,9 @@ def search_by_field(session: requests.Session, keyword: str,
     return all_results
 
 
-def fetch_detail(session: requests.Session, url: str) -> dict:
-    """從詳情頁抓截止時間(含時:分)和開標時間"""
-    if not url:
-        return {}
-    try:
-        resp = session.get(url, verify=False, timeout=20)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"    [詳情頁錯誤] {e}")
-        return {}
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    result = {}
-    for tr in soup.find_all("tr"):
-        tds = tr.find_all(["th", "td"])
-        for i, td in enumerate(tds):
-            label = td.get_text(strip=True)
-            if i + 1 >= len(tds):
-                continue
-            val = tds[i + 1].get_text(strip=True)
-            if not val or "/" not in val:
-                continue
-            if "截止投標" in label:
-                result["deadline"] = roc_to_western(val)
-            elif "開標時間" in label:
-                result["opening_date"] = roc_to_western(val)
-    return result
-
-
 def search_keyword(session: requests.Session, keyword: str,
                    start_date: str, end_date: str) -> list[dict]:
-    """搜尋標案名稱 + 機關名稱，合併去重後回傳；再逐筆抓詳情頁取精確時間"""
+    """搜尋標案名稱 + 機關名稱，合併去重後回傳"""
     seen = {}
     for field in ("tenderName", "orgName"):
         results = search_by_field(session, keyword, start_date, end_date, field)
@@ -291,16 +262,7 @@ def search_keyword(session: requests.Session, keyword: str,
             if r["tender_id"] not in seen:
                 seen[r["tender_id"]] = r
         time.sleep(0.5)
-
-    all_results = list(seen.values())
-    print(f"  → 抓取 {len(all_results)} 筆詳情頁取精確時間...")
-    for r in all_results:
-        detail = fetch_detail(session, r.get("detail_url", ""))
-        if detail:
-            r.update(detail)
-        time.sleep(0.4)
-
-    return all_results
+    return list(seen.values())
 
 
 def run_scraper(start_date: str = None, end_date: str = None) -> int:
