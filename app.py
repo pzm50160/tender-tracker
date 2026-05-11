@@ -103,7 +103,7 @@ stats = get_stats()
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("資料庫總筆數", stats["total"])
 m2.metric("未讀", stats["unread"])
-m3.metric("關鍵字數", len(KEYWORDS))
+m3.metric("關鍵字數", len(get_keywords()))
 m4.metric("最新更新", date.today().strftime("%Y/%m/%d"))
 
 st.divider()
