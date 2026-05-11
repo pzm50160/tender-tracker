@@ -116,6 +116,19 @@ def init_db():
     conn.close()
 
 
+def delete_old_tenders(months: int = 3):
+    from datetime import timedelta
+    cutoff = (datetime.now() - timedelta(days=months * 30)).strftime("%Y/%m/%d")
+    ph = _ph()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f"DELETE FROM tenders WHERE publish_date < {ph}", (cutoff,))
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 def upsert_tender(t: dict):
     ph = _ph()
     conn = get_conn()

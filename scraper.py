@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, date, timedelta
 
 from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
-from database import upsert_tender, log_fetch, init_db, get_keywords
+from database import upsert_tender, log_fetch, init_db, get_keywords, delete_old_tenders
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -278,6 +278,10 @@ def run_scraper(start_date: str = None, end_date: str = None) -> int:
         start_date = (today - timedelta(days=7)).strftime("%Y/%m/%d")
     if not end_date:
         end_date = today.strftime("%Y/%m/%d")
+
+    deleted = delete_old_tenders(months=3)
+    if deleted:
+        print(f"已清除 {deleted} 筆 3 個月前的舊資料")
 
     KEYWORDS = get_keywords()
 
