@@ -26,10 +26,10 @@ st.markdown("""
 [data-testid="stDecoration"] { display: none !important; }
 .stDeployButton            { display: none !important; }
 #MainMenu                  { visibility: hidden !important; }
-footer                     { visibility: hidden !important; }
-/* 隱藏右下角 Manage app 按鈕（多組 selector 廣撒網） */
+footer                               { display: none !important; }
 [data-testid="manage-app-button"]    { display: none !important; }
 [data-testid="stBottom"]             { display: none !important; }
+[data-testid="stBottomNavContainer"] { display: none !important; }
 .stBottom                            { display: none !important; }
 [class*="manageApp"]                 { display: none !important; }
 [class*="manage-app"]                { display: none !important; }
