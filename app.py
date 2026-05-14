@@ -168,39 +168,68 @@ with st.sidebar:
     st.divider()
     st.subheader("程式更新")
     _repo_dir = os.path.dirname(os.path.abspath(__file__))
+    _REPO     = "pzm50160/tender-tracker"
+    _UPDATE_FILES = ["app.py", "database.py", "scraper.py", "自動搜尋.py"]
+    _VERSION_FILE = os.path.join(_repo_dir, ".version")
+
+    def _local_sha():
+        """讀本機版本：先試 git，否則讀 .version 檔"""
+        import subprocess
+        r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=_repo_dir,
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            return r.stdout.strip(), "git"
+        if os.path.exists(_VERSION_FILE):
+            return open(_VERSION_FILE).read().strip(), "file"
+        return "", "none"
 
     @st.cache_data(ttl=300, show_spinner=False)
-    def _check_update(t=0):
-        import subprocess
-        subprocess.run(["git", "fetch", "origin"], cwd=_repo_dir,
-                       capture_output=True, timeout=10)
-        local  = subprocess.run(["git", "rev-parse", "HEAD"],
-                                cwd=_repo_dir, capture_output=True, text=True).stdout.strip()
-        remote = subprocess.run(["git", "rev-parse", "origin/main"],
-                                cwd=_repo_dir, capture_output=True, text=True).stdout.strip()
-        return local, remote
+    def _remote_sha(_t=0):
+        import urllib.request, json
+        url = f"https://api.github.com/repos/{_REPO}/commits/main"
+        req = urllib.request.Request(url, headers={"User-Agent": "tender-tracker"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())["sha"]
+
+    def _do_update():
+        import subprocess, urllib.request, urllib.parse
+        # 優先用 git pull
+        r = subprocess.run(["git", "pull", "origin", "main"], cwd=_repo_dir,
+                            capture_output=True, text=True, timeout=30)
+        if r.returncode == 0:
+            return True
+        # 沒有 git → 從 GitHub 逐檔下載
+        base = f"https://raw.githubusercontent.com/{_REPO}/main"
+        for fname in _UPDATE_FILES:
+            url  = f"{base}/{urllib.parse.quote(fname)}"
+            dest = os.path.join(_repo_dir, fname)
+            urllib.request.urlretrieve(url, dest)
+        return True
 
     try:
-        _local, _remote = _check_update()
-        if _local and _remote and _local != _remote:
-            st.warning(f"有新版本可更新")
-            st.caption(f"目前：`{_local[:7]}`　最新：`{_remote[:7]}`")
+        _sha_local, _method = _local_sha()
+        _sha_remote = _remote_sha()
+        _has_update = bool(_sha_local) and _sha_local != _sha_remote
+
+        if _has_update:
+            st.warning("有新版本可更新")
+            st.caption(f"目前：`{_sha_local[:7]}`　最新：`{_sha_remote[:7]}`")
             if st.button("立即更新", type="primary", use_container_width=True):
-                import subprocess
-                r = subprocess.run(["git", "pull", "origin", "main"],
-                                   cwd=_repo_dir, capture_output=True, text=True, timeout=30)
-                _check_update.clear()
-                if r.returncode == 0:
-                    st.success("更新完成！請重新啟動程式（關閉並重開啟動系統.bat）")
-                else:
-                    st.error(f"更新失敗：{r.stderr or r.stdout}")
+                with st.spinner("下載更新中..."):
+                    try:
+                        _do_update()
+                        open(_VERSION_FILE, "w").write(_sha_remote)
+                        _remote_sha.clear()
+                        st.success("更新完成！請重新啟動程式（關閉再重開）")
+                    except Exception as _ue:
+                        st.error(f"更新失敗：{_ue}")
         else:
-            st.caption(f"已是最新版本 `{_local[:7]}`")
+            st.caption(f"已是最新版本 `{(_sha_local or _sha_remote)[:7]}`")
             if st.button("檢查更新", use_container_width=True):
-                _check_update.clear()
+                _remote_sha.clear()
                 st.rerun()
     except Exception as _e:
-        st.caption(f"無法檢查更新：{_e}")
+        st.caption(f"無法檢查更新（請確認網路）")
 
 # ── 執行搜尋 ─────────────────────────────────────────────
 if st.session_state.get("do_search"):
