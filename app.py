@@ -24,7 +24,12 @@ if "page" not in st.session_state:
     st.session_state["page"] = 0
 
 def _do_toggle_read(tender_id, is_read):
-    mark_read(tender_id, not is_read)
+    from database import get_conn
+    conn = get_conn()
+    conn.execute("UPDATE tenders SET is_read = ? WHERE tender_id = ?",
+                 (0 if is_read else 1, tender_id))
+    conn.commit()
+    conn.close()
 
 def _do_toggle_bid(tender_id, current_bid):
     mark_bid(tender_id, not current_bid)
