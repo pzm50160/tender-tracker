@@ -40,19 +40,6 @@ def invalidate_cache():
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* 隱藏右上角 toolbar（含 GitHub 連結、Deploy 按鈕等） */
-[data-testid="stToolbar"]  { display: none !important; }
-[data-testid="stDecoration"] { display: none !important; }
-.stDeployButton            { display: none !important; }
-#MainMenu                  { visibility: hidden !important; }
-footer                               { display: none !important; }
-[data-testid="manage-app-button"]    { display: none !important; }
-[data-testid="stBottom"]             { display: none !important; }
-[data-testid="stBottomNavContainer"] { display: none !important; }
-.stBottom                            { display: none !important; }
-[class*="manageApp"]                 { display: none !important; }
-[class*="manage-app"]                { display: none !important; }
-
 .card { background:#f8f9fa; border-left:4px solid #2196F3; border-radius:6px; padding:12px 16px; margin-bottom:10px; }
 .card.unread { border-left-color:#E53935; background:#fff5f5; }
 .card.bid   { border-left-color:#7B1FA2; background:#f3e5f5; }

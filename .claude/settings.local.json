@@ -3,7 +3,17 @@
     "allow": [
       "WebFetch(domain:web.pcc.gov.tw)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add app.py .streamlit/config.toml)",
+      "Bash(git -C 'D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77' commit -m ' *)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add app.py)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" push origin claude/busy-maxwell-8ebf77:main)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add app.py database.py)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" show HEAD:database.py)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" log --oneline -5)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" ls-remote origin main)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add 啟動系統.bat 安裝套件.bat 打包更新.bat)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add -A)"
     ]
   }
 }
