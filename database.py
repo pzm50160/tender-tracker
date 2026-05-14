@@ -179,6 +179,14 @@ def mark_read(tender_id: str):
     conn.close()
 
 
+def mark_unread(tender_id: str):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("UPDATE tenders SET is_read = 0 WHERE tender_id = ?", (tender_id,))
+    conn.commit()
+    conn.close()
+
+
 def mark_all_read():
     conn = get_conn()
     cur = conn.cursor()

@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-from database import init_db, get_tenders, mark_read, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
+from database import init_db, get_tenders, mark_read, mark_unread, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
 from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
 
 st.set_page_config(
@@ -23,8 +23,11 @@ CARDS_PER_PAGE = 20
 if "page" not in st.session_state:
     st.session_state["page"] = 0
 
-def _do_mark_read(tender_id):
-    mark_read(tender_id)
+def _do_toggle_read(tender_id, is_read):
+    if is_read:
+        mark_unread(tender_id)
+    else:
+        mark_read(tender_id)
 
 def _do_toggle_bid(tender_id, current_bid):
     mark_bid(tender_id, not current_bid)
@@ -212,11 +215,11 @@ with tab_list:
 
             btn_cols = st.columns([1, 1, 6])
             btn_cols[0].button(
-                "標為已讀",
+                "✓ 已讀" if not unread else "標為已讀",
                 key=f"r_{t['id']}",
-                disabled=not unread,
-                on_click=_do_mark_read,
-                args=(t["tender_id"],),
+                type="secondary",
+                on_click=_do_toggle_read,
+                args=(t["tender_id"], not unread),
             )
             btn_cols[1].button(
                 "✓ 已投標" if is_bid_flag else "標為已投標",
