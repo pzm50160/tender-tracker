@@ -25,18 +25,15 @@ if '--_streamlit-server' in sys.argv:
     app_py = os.path.join(APP_DIR, 'app.py')
     os.makedirs(os.path.join(APP_DIR, 'data'), exist_ok=True)
 
-    # 寫好 config.toml，確保 developmentMode=false（覆蓋 bundle 內部設定）
-    _cfg_dir = os.path.join(APP_DIR, '.streamlit')
-    os.makedirs(_cfg_dir, exist_ok=True)
-    with open(os.path.join(_cfg_dir, 'config.toml'), 'w', encoding='utf-8') as _f:
-        _f.write(
-            "[global]\ndevelopmentMode = false\n\n"
-            "[server]\nheadless = true\naddress = \"127.0.0.1\"\n\n"
-            "[browser]\ngatherUsageStats = false\n\n"
-            "[client]\nshowSidebarNavigation = false\ntoolbarMode = \"minimal\"\n"
-        )
+    # PyInstaller bundle 裡 streamlit 誤判為開發模式（__file__ 不含 site-packages）
+    # 在 import streamlit 前 patch env_util.is_pex() 讓它回傳 True，
+    # 使 developmentMode 預設值變為 False
+    import streamlit.env_util as _env_util
+    _env_util.is_pex = lambda: True
 
-    sys.argv = ['streamlit', 'run', app_py]
+    sys.argv = ['streamlit', 'run', app_py,
+                '--server.headless=true',
+                '--server.address=127.0.0.1']
     from streamlit.web import cli as _stcli
     _stcli.main()
     sys.exit(0)
