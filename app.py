@@ -18,6 +18,21 @@ st.set_page_config(
 
 init_db()
 
+if "cache_buster" not in st.session_state:
+    st.session_state["cache_buster"] = 0
+
+@st.cache_data(show_spinner=False)
+def fetch_tenders(cb, date_from, date_to, keyword, unread_only, active_keywords_tuple, bid_only):
+    return get_tenders(
+        date_from=date_from, date_to=date_to, keyword=keyword,
+        unread_only=unread_only,
+        active_keywords=list(active_keywords_tuple) if active_keywords_tuple else None,
+        bid_only=bid_only,
+    )
+
+def invalidate_cache():
+    st.session_state["cache_buster"] += 1
+
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -36,6 +51,8 @@ footer                               { display: none !important; }
 
 .card { background:#f8f9fa; border-left:4px solid #2196F3; border-radius:6px; padding:12px 16px; margin-bottom:10px; }
 .card.unread { border-left-color:#E53935; background:#fff5f5; }
+.card.bid   { border-left-color:#7B1FA2; background:#f3e5f5; }
+.card.bid.unread { border-left-color:#7B1FA2; background:#ede7f6; }
 .card-title { font-size:1.05rem; font-weight:700; color:#1a1a2e; margin-bottom:6px; }
 .card-meta  { font-size:0.85rem; color:#555; line-height:1.8; }
 .badge { display:inline-block; padding:2px 9px; border-radius:12px; font-size:0.75rem; font-weight:600; margin-right:5px; }
@@ -115,12 +132,13 @@ if st.session_state.get("do_search"):
 st.title("政府採購｜健檢標案追蹤系統")
 
 # 取得資料
-tenders = get_tenders(
+tenders = fetch_tenders(
+    cb=st.session_state["cache_buster"],
     date_from=date_from.strftime("%Y/%m/%d"),
     date_to=date_to.strftime("%Y/%m/%d"),
     keyword=kw_filter or None,
     unread_only=unread_only,
-    active_keywords=keywords,
+    active_keywords_tuple=tuple(keywords),
     bid_only=bid_only,
 )
 
@@ -143,7 +161,7 @@ with tab_list:
     col_a, col_b, _ = st.columns([1, 1, 4])
     with col_a:
         if st.button("全部已讀"):
-            mark_all_read(); st.rerun()
+            mark_all_read(); invalidate_cache(); st.rerun()
 
     if not tenders:
         st.info("目前沒有資料。請點左側「開始搜尋」。")
@@ -152,7 +170,14 @@ with tab_list:
         for t in tenders:
             unread = not t["is_read"]
             is_bid_flag = bool(t.get("is_bid"))
-            card_cls = "card unread" if unread else "card"
+            if is_bid_flag and unread:
+                card_cls = "card bid unread"
+            elif is_bid_flag:
+                card_cls = "card bid"
+            elif unread:
+                card_cls = "card unread"
+            else:
+                card_cls = "card"
             budget_str = f"{t['budget']:>12,.0f} 元" if t["budget"] else "未揭露"
             unread_badge = '<span class="badge red">未讀</span>' if unread else ""
             bid_badge    = '<span class="badge purple">已投標</span>' if is_bid_flag else ""
@@ -178,13 +203,13 @@ with tab_list:
             btn_cols = st.columns([1, 1, 6])
             if unread:
                 if btn_cols[0].button("標為已讀", key=f"r_{t['id']}"):
-                    mark_read(t["tender_id"]); st.rerun()
+                    mark_read(t["tender_id"]); invalidate_cache(); st.rerun()
             if is_bid_flag:
                 if btn_cols[1].button("取消已投標", key=f"ub_{t['id']}"):
-                    mark_bid(t["tender_id"], False); st.rerun()
+                    mark_bid(t["tender_id"], False); invalidate_cache(); st.rerun()
             else:
                 if btn_cols[1].button("標為已投標", key=f"b_{t['id']}"):
-                    mark_bid(t["tender_id"], True); st.rerun()
+                    mark_bid(t["tender_id"], True); invalidate_cache(); st.rerun()
 
 
 # ── 表格 / 匯出 ──────────────────────────────────────────
