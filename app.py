@@ -223,12 +223,10 @@ with tab_list:
             if unread:
                 if btn_cols[0].button("標為已讀", key=f"r_{t['id']}"):
                     mark_read(t["tender_id"]); invalidate_cache(); st.rerun()
-            if is_bid_flag:
-                if btn_cols[1].button("✓ 已投標", key=f"ub_{t['id']}", type="primary"):
-                    mark_bid(t["tender_id"], False); invalidate_cache(); st.rerun()
-            else:
-                if btn_cols[1].button("標為已投標", key=f"b_{t['id']}"):
-                    mark_bid(t["tender_id"], True); invalidate_cache(); st.rerun()
+            bid_label = "✓ 已投標" if is_bid_flag else "標為已投標"
+            bid_type  = "primary" if is_bid_flag else "secondary"
+            if btn_cols[1].button(bid_label, key=f"bid_{t['id']}", type=bid_type):
+                mark_bid(t["tender_id"], not is_bid_flag); invalidate_cache(); st.rerun()
 
         # ── 分頁控制（底部）────────────────────────────────
         st.divider()
