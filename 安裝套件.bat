@@ -28,9 +28,12 @@ echo.
 echo 安裝套件中...
 %PYTHON% -m pip install --upgrade pip --quiet
 %PYTHON% -m pip install -r requirements.txt --quiet
+%PYTHON% -m pip install pywebview pystray pillow --quiet
 
 echo.
 echo ===============================================
-echo  安裝完成！請執行「啟動系統.bat」開始使用
+echo  安裝完成！
+echo  - 執行「健檢標案追蹤系統.exe」開啟桌面程式
+echo  - 或執行「啟動系統.bat」使用瀏覽器版本
 echo ===============================================
 pause
