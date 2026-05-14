@@ -1,19 +1,35 @@
 @echo off
 chcp 65001 > nul
 title 健檢標案追蹤系統
+cd /d "%~dp0"
+
 echo ===============================================
 echo  健檢標案追蹤系統
 echo ===============================================
 echo.
-echo 正在啟動網頁介面...
-echo 請用瀏覽器開啟: http://localhost:8501
-echo.
-echo 按 Ctrl+C 可關閉系統
-echo.
-REM 優先使用攜帶式 Python，否則用系統 Python
+
+REM 確保資料資料夾存在
+if not exist "data" mkdir data
+
+REM 找 Python
 if exist "%~dp0python-portable\python.exe" (
-    "%~dp0python-portable\python.exe" -m streamlit run "%~dp0app.py" --server.headless true
+    set PYTHON="%~dp0python-portable\python.exe"
 ) else (
-    python -m streamlit run app.py --server.headless true
+    set PYTHON=python
 )
+
+REM 檢查 streamlit 是否已安裝
+%PYTHON% -c "import streamlit" 2>nul
+if errorlevel 1 (
+    echo [!] 尚未安裝套件，請先執行「安裝套件.bat」
+    echo.
+    pause
+    exit /b 1
+)
+
+echo 正在啟動，瀏覽器將自動開啟...
+echo 關閉此視窗即可停止系統
+echo.
+
+%PYTHON% -m streamlit run app.py --server.headless false --server.port 8501
 pause
