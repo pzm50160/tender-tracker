@@ -29,8 +29,9 @@ MAX_BUDGET = None
 # 地區篩選（空白表示全台灣）
 REGIONS = []
 
-# 資料存放路徑
-DB_PATH = "data/tenders.db"
+# 資料存放路徑（絕對路徑，確保無論從哪個目錄啟動都找到同一個檔案）
+import os as _os
+DB_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "data", "tenders.db")
 
 # 搜尋網址
 PCC_URL = "https://web.pcc.gov.tw/pis/"
