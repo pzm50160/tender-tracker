@@ -21,13 +21,23 @@ init_db()
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* 隱藏右上角 toolbar（含 GitHub 連結、Deploy 按鈕等） */
+/* 隱藏右上角 toolbar（含 GitHub 連結、Deploy 按鈕等），但保留載入動畫 */
 [data-testid="stToolbar"]  { display: none !important; }
 [data-testid="stDecoration"] { display: none !important; }
 .stDeployButton            { display: none !important; }
 #MainMenu                  { visibility: hidden !important; }
 footer                     { visibility: hidden !important; }
-[data-testid="stStatusWidget"] { visibility: visible !important; }
+/* 隱藏右下角 Manage app 按鈕 */
+[data-testid="manage-app-button"] { display: none !important; }
+/* 載入動畫強制顯示並固定在右上角 */
+[data-testid="stStatusWidget"] {
+    display: flex !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 999999 !important;
+}
 
 .card { background:#f8f9fa; border-left:4px solid #2196F3; border-radius:6px; padding:12px 16px; margin-bottom:10px; }
 .card.unread { border-left-color:#E53935; background:#fff5f5; }
