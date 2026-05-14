@@ -171,18 +171,10 @@ def mark_bid(tender_id: str, bid: bool = True):
     conn.close()
 
 
-def mark_read(tender_id: str):
+def mark_read(tender_id: str, read: bool = True):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("UPDATE tenders SET is_read = 1 WHERE tender_id = ?", (tender_id,))
-    conn.commit()
-    conn.close()
-
-
-def mark_unread(tender_id: str):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("UPDATE tenders SET is_read = 0 WHERE tender_id = ?", (tender_id,))
+    cur.execute("UPDATE tenders SET is_read = ? WHERE tender_id = ?", (1 if read else 0, tender_id))
     conn.commit()
     conn.close()
 

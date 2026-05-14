@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-from database import init_db, get_tenders, mark_read, mark_unread, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
+from database import init_db, get_tenders, mark_read, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
 from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
 
 st.set_page_config(
@@ -24,10 +24,7 @@ if "page" not in st.session_state:
     st.session_state["page"] = 0
 
 def _do_toggle_read(tender_id, is_read):
-    if is_read:
-        mark_unread(tender_id)
-    else:
-        mark_read(tender_id)
+    mark_read(tender_id, not is_read)
 
 def _do_toggle_bid(tender_id, current_bid):
     mark_bid(tender_id, not current_bid)
