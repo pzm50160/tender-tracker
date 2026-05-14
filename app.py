@@ -116,8 +116,10 @@ if st.session_state.get("do_search"):
     st.session_state["do_search"] = False
     with st.spinner("正在搜尋政府電子採購網..."):
         try:
-            from scraper import run_scraper
-            import traceback
+            import importlib, traceback
+            import scraper as _scraper_mod
+            importlib.reload(_scraper_mod)
+            run_scraper = _scraper_mod.run_scraper
             count = run_scraper(
                 start_date=st.session_state["s_from"],
                 end_date=st.session_state["s_to"],
