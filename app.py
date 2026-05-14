@@ -37,6 +37,14 @@ def fetch_tenders(cb, date_from, date_to, keyword, unread_only, active_keywords_
 def invalidate_cache():
     st.session_state["cache_buster"] += 1
 
+def _do_mark_read(tender_id):
+    mark_read(tender_id)
+    invalidate_cache()
+
+def _do_toggle_bid(tender_id, current_bid):
+    mark_bid(tender_id, not current_bid)
+    invalidate_cache()
+
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -175,8 +183,9 @@ tab_list, tab_table, tab_stats, tab_log = st.tabs(["卡片檢視", "表格 / 匯
 with tab_list:
     col_a, col_b, _ = st.columns([1, 1, 4])
     with col_a:
-        if st.button("全部已讀"):
-            mark_all_read(); invalidate_cache(); st.rerun()
+        def _do_mark_all_read():
+            mark_all_read(); invalidate_cache()
+        st.button("全部已讀", on_click=_do_mark_all_read)
 
     if not tenders:
         st.info("目前沒有資料。請點左側「開始搜尋」。")
@@ -220,13 +229,20 @@ with tab_list:
 </div>""", unsafe_allow_html=True)
 
             btn_cols = st.columns([1, 1, 6])
-            if unread:
-                if btn_cols[0].button("標為已讀", key=f"r_{t['id']}"):
-                    mark_read(t["tender_id"]); invalidate_cache(); st.rerun()
-            bid_label = "✓ 已投標" if is_bid_flag else "標為已投標"
-            bid_type  = "primary" if is_bid_flag else "secondary"
-            if btn_cols[1].button(bid_label, key=f"bid_{t['id']}", type=bid_type):
-                mark_bid(t["tender_id"], not is_bid_flag); invalidate_cache(); st.rerun()
+            btn_cols[0].button(
+                "標為已讀",
+                key=f"r_{t['id']}",
+                disabled=not unread,
+                on_click=_do_mark_read,
+                args=(t["tender_id"],),
+            )
+            btn_cols[1].button(
+                "✓ 已投標" if is_bid_flag else "標為已投標",
+                key=f"bid_{t['id']}",
+                type="primary" if is_bid_flag else "secondary",
+                on_click=_do_toggle_bid,
+                args=(t["tender_id"], is_bid_flag),
+            )
 
         # ── 分頁控制（底部）────────────────────────────────
         st.divider()
