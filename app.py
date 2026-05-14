@@ -2,9 +2,11 @@
 健檢標案追蹤系統 — Streamlit 介面
 執行: streamlit run app.py
 """
+import os
+import sys
 import streamlit as st
 import pandas as pd
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 from database import init_db, get_tenders, mark_read, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
 from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
@@ -109,6 +111,59 @@ with st.sidebar:
         keywords.append(new_kw)
         save_keywords(keywords)
         st.rerun()
+
+    st.divider()
+    st.subheader("自動排程")
+    _task_name = "健檢標案自動搜尋"
+    _script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "自動搜尋.py")
+    _python = sys.executable
+
+    def _query_task():
+        import subprocess
+        r = subprocess.run(
+            ["schtasks", "/query", "/tn", _task_name, "/fo", "LIST"],
+            capture_output=True, text=True, encoding="cp950", errors="replace"
+        )
+        return r.returncode == 0, r.stdout
+
+    _task_exists, _task_info = _query_task()
+
+    if _task_exists:
+        next_run = ""
+        for line in _task_info.splitlines():
+            if "下次執行時間" in line or "Next Run Time" in line:
+                next_run = line.split(":", 1)[-1].strip()
+        st.success(f"排程已啟用")
+        if next_run:
+            st.caption(f"下次執行：{next_run}")
+        if st.button("停用排程", use_container_width=True):
+            import subprocess
+            subprocess.run(["schtasks", "/delete", "/tn", _task_name, "/f"],
+                           capture_output=True)
+            st.rerun()
+    else:
+        st.info("排程未啟用")
+
+    sched_time = st.time_input("執行時間", value=datetime.strptime("08:00", "%H:%M").time(),
+                                label_visibility="visible")
+    if st.button("啟用每日排程", type="primary", use_container_width=True):
+        import subprocess
+        t_str = sched_time.strftime("%H:%M")
+        cmd = [
+            "schtasks", "/create",
+            "/tn", _task_name,
+            "/tr", f'"{_python}" "{_script}"',
+            "/sc", "daily",
+            "/st", t_str,
+            "/f"
+        ]
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding="cp950", errors="replace")
+        if r.returncode == 0:
+            st.success(f"已設定每天 {t_str} 自動搜尋")
+            st.rerun()
+        else:
+            st.error(f"設定失敗：{r.stderr or r.stdout}")
 
 # ── 執行搜尋 ─────────────────────────────────────────────
 if st.session_state.get("do_search"):
