@@ -27,6 +27,7 @@ st.markdown("""
 .stDeployButton            { display: none !important; }
 #MainMenu                  { visibility: hidden !important; }
 footer                     { visibility: hidden !important; }
+[data-testid="stStatusWidget"] { visibility: visible !important; }
 
 .card { background:#f8f9fa; border-left:4px solid #2196F3; border-radius:6px; padding:12px 16px; margin-bottom:10px; }
 .card.unread { border-left-color:#E53935; background:#fff5f5; }
