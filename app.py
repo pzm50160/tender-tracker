@@ -64,9 +64,11 @@ with st.sidebar:
     st.subheader("篩選")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        date_from = st.date_input("從", value=date.today() - timedelta(days=30), label_visibility="visible")
+        date_from = st.date_input("從", value=date.today() - timedelta(days=30), format="YYYY/MM/DD")
     with col_d2:
-        date_to = st.date_input("至", value=date.today(), label_visibility="visible")
+        date_to = st.date_input("至", value=date.today(), min_value=date_from, format="YYYY/MM/DD")
+    if date_from > date_to:
+        st.warning("起始日期不能大於結束日期")
     kw_filter = st.text_input("關鍵字", placeholder="機關名稱 / 標案名稱")
     unread_only = st.toggle("只看未讀", value=False)
     bid_only    = st.toggle("顯示所有已投標", value=False)
@@ -77,9 +79,9 @@ with st.sidebar:
     st.subheader("立即搜尋 PCC")
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        search_from = st.date_input("起", value=date.today() - timedelta(days=7), label_visibility="visible")
+        search_from = st.date_input("起", value=date.today() - timedelta(days=7), format="YYYY/MM/DD")
     with col_s2:
-        search_to = st.date_input("迄", value=date.today(), label_visibility="visible")
+        search_to = st.date_input("迄", value=date.today(), min_value=search_from, format="YYYY/MM/DD")
 
     ALL_PROC_TYPES = ["工程類", "財物類", "勞務類"]
     selected_types = st.multiselect(
@@ -184,19 +186,6 @@ with tab_list:
         st.session_state["page"] = page
         page_tenders = tenders[page * CARDS_PER_PAGE:(page + 1) * CARDS_PER_PAGE]
 
-        # 分頁控制列
-        pg_cols = st.columns([1, 1, 3, 1, 1])
-        if pg_cols[0].button("⏮", disabled=(page == 0)):
-            st.session_state["page"] = 0; st.rerun()
-        if pg_cols[1].button("◀", disabled=(page == 0)):
-            st.session_state["page"] -= 1; st.rerun()
-        pg_cols[2].markdown(f"<div style='text-align:center;padding-top:6px'>第 {page+1} / {total_pages} 頁　共 {len(tenders)} 筆</div>", unsafe_allow_html=True)
-        if pg_cols[3].button("▶", disabled=(page >= total_pages - 1)):
-            st.session_state["page"] += 1; st.rerun()
-        if pg_cols[4].button("⏭", disabled=(page >= total_pages - 1)):
-            st.session_state["page"] = total_pages - 1; st.rerun()
-
-        st.divider()
         for t in page_tenders:
             unread = not t["is_read"]
             is_bid_flag = bool(t.get("is_bid"))
@@ -235,11 +224,24 @@ with tab_list:
                 if btn_cols[0].button("標為已讀", key=f"r_{t['id']}"):
                     mark_read(t["tender_id"]); invalidate_cache(); st.rerun()
             if is_bid_flag:
-                if btn_cols[1].button("取消已投標", key=f"ub_{t['id']}"):
+                if btn_cols[1].button("✓ 已投標", key=f"ub_{t['id']}", type="primary"):
                     mark_bid(t["tender_id"], False); invalidate_cache(); st.rerun()
             else:
                 if btn_cols[1].button("標為已投標", key=f"b_{t['id']}"):
                     mark_bid(t["tender_id"], True); invalidate_cache(); st.rerun()
+
+        # ── 分頁控制（底部）────────────────────────────────
+        st.divider()
+        pg_cols = st.columns([1, 1, 3, 1, 1])
+        if pg_cols[0].button("⏮", disabled=(page == 0), key="pg_first"):
+            st.session_state["page"] = 0; st.rerun()
+        if pg_cols[1].button("◀", disabled=(page == 0), key="pg_prev"):
+            st.session_state["page"] -= 1; st.rerun()
+        pg_cols[2].markdown(f"<div style='text-align:center;padding-top:6px'>第 {page+1} / {total_pages} 頁　共 {len(tenders)} 筆</div>", unsafe_allow_html=True)
+        if pg_cols[3].button("▶", disabled=(page >= total_pages - 1), key="pg_next"):
+            st.session_state["page"] += 1; st.rerun()
+        if pg_cols[4].button("⏭", disabled=(page >= total_pages - 1), key="pg_last"):
+            st.session_state["page"] = total_pages - 1; st.rerun()
 
 
 # ── 表格 / 匯出 ──────────────────────────────────────────
