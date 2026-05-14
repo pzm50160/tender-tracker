@@ -156,7 +156,7 @@ def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False, a
     if keyword:
         sql += " AND (tender_name LIKE ? OR matched_keyword LIKE ? OR agency LIKE ?)"
         params += [f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"]
-    sql += " ORDER BY publish_date DESC, fetched_at DESC"
+    sql += " ORDER BY publish_date DESC, fetched_at DESC, id DESC"
     cur.execute(sql, params)
     rows = cur.fetchall()
     conn.close()

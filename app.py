@@ -18,6 +18,18 @@ st.set_page_config(
 
 init_db()
 
+# 在資料讀取前先處理待執行的 DB 操作，確保順序正確
+_pm = st.session_state.pop("_pending_mutation", None)
+if _pm:
+    op = _pm[0]
+    if op == "read":
+        mark_read(_pm[1])
+    elif op == "all_read":
+        mark_all_read()
+    elif op == "bid":
+        mark_bid(_pm[1], _pm[2])
+    st.session_state["cache_buster"] = st.session_state.get("cache_buster", 0) + 1
+
 CARDS_PER_PAGE = 20
 
 if "cache_buster" not in st.session_state:
@@ -34,16 +46,11 @@ def fetch_tenders(cb, date_from, date_to, keyword, unread_only, active_keywords_
         bid_only=bid_only,
     )
 
-def invalidate_cache():
-    st.session_state["cache_buster"] += 1
-
 def _do_mark_read(tender_id):
-    mark_read(tender_id)
-    invalidate_cache()
+    st.session_state["_pending_mutation"] = ("read", tender_id)
 
 def _do_toggle_bid(tender_id, current_bid):
-    mark_bid(tender_id, not current_bid)
-    invalidate_cache()
+    st.session_state["_pending_mutation"] = ("bid", tender_id, not current_bid)
 
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
@@ -184,7 +191,7 @@ with tab_list:
     col_a, col_b, _ = st.columns([1, 1, 4])
     with col_a:
         def _do_mark_all_read():
-            mark_all_read(); invalidate_cache()
+            st.session_state["_pending_mutation"] = ("all_read",)
         st.button("全部已讀", on_click=_do_mark_all_read)
 
     if not tenders:
