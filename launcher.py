@@ -24,12 +24,19 @@ _browser_proc   = None
 if '--_streamlit-server' in sys.argv:
     app_py = os.path.join(APP_DIR, 'app.py')
     os.makedirs(os.path.join(APP_DIR, 'data'), exist_ok=True)
-    sys.argv = [
-        'streamlit', 'run', app_py,
-        '--server.headless=true',
-        f'--server.port={PORT}',
-        '--server.address=127.0.0.1',
-    ]
+
+    # 寫好 config.toml，確保 developmentMode=false（覆蓋 bundle 內部設定）
+    _cfg_dir = os.path.join(APP_DIR, '.streamlit')
+    os.makedirs(_cfg_dir, exist_ok=True)
+    with open(os.path.join(_cfg_dir, 'config.toml'), 'w', encoding='utf-8') as _f:
+        _f.write(
+            "[global]\ndevelopmentMode = false\n\n"
+            "[server]\nheadless = true\naddress = \"127.0.0.1\"\n\n"
+            "[browser]\ngatherUsageStats = false\n\n"
+            "[client]\nshowSidebarNavigation = false\ntoolbarMode = \"minimal\"\n"
+        )
+
+    sys.argv = ['streamlit', 'run', app_py]
     from streamlit.web import cli as _stcli
     _stcli.main()
     sys.exit(0)
