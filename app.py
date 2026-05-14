@@ -81,10 +81,19 @@ with st.sidebar:
     with col_s2:
         search_to = st.date_input("迄", value=date.today(), label_visibility="visible")
 
+    ALL_PROC_TYPES = ["工程類", "財物類", "勞務類"]
+    selected_types = st.multiselect(
+        "採購性質",
+        options=ALL_PROC_TYPES,
+        default=ALL_PROC_TYPES,
+        help="不選等同全部"
+    )
+
     if st.button("開始搜尋", type="primary", use_container_width=True):
         st.session_state["do_search"] = True
         st.session_state["s_from"] = search_from.strftime("%Y/%m/%d")
         st.session_state["s_to"]   = search_to.strftime("%Y/%m/%d")
+        st.session_state["s_types"] = selected_types if selected_types != ALL_PROC_TYPES else []
 
     st.divider()
     st.subheader("監控關鍵字")
@@ -101,8 +110,6 @@ with st.sidebar:
         keywords.append(new_kw)
         save_keywords(keywords)
         st.rerun()
-    if PROCUREMENT_TYPES:
-        st.caption(f"採購性質: {', '.join(PROCUREMENT_TYPES)}")
 
 # ── 執行搜尋 ─────────────────────────────────────────────
 if st.session_state.get("do_search"):
@@ -110,14 +117,21 @@ if st.session_state.get("do_search"):
     with st.spinner("正在搜尋政府電子採購網..."):
         try:
             from scraper import run_scraper
+            import traceback
             count = run_scraper(
                 start_date=st.session_state["s_from"],
                 end_date=st.session_state["s_to"],
+                procurement_types=st.session_state.get("s_types") or None,
             )
-            st.success(f"搜尋完成！共找到並更新 {count} 筆標案")
+            invalidate_cache()
+            if count > 0:
+                st.success(f"搜尋完成！共找到並更新 {count} 筆標案")
+            else:
+                st.warning("搜尋完成，但沒有符合條件的標案（可嘗試擴大日期範圍或新增關鍵字）")
             st.rerun()
         except Exception as e:
             st.error(f"搜尋失敗：{e}")
+            st.code(traceback.format_exc())
 
 # ── 主畫面 ───────────────────────────────────────────────
 st.title("政府採購｜健檢標案追蹤系統")

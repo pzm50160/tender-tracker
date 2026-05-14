@@ -13,7 +13,12 @@
       "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" log --oneline -5)",
       "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" ls-remote origin main)",
       "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add 啟動系統.bat 安裝套件.bat 打包更新.bat)",
-      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add -A)"
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add -A)",
+      "Bash(python -c ' *)",
+      "PowerShell(pip install psycopg2-binary -q)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add config.py)",
+      "Bash(git -C \"D:\\\\dev\\\\爬蟲\\\\.claude\\\\worktrees\\\\busy-maxwell-8ebf77\" add launcher.py 打包exe.bat 安裝套件.bat)",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match 'streamlit|python|msedge' } | Select-Object Name, Id, CPU)"
     ]
   }
 }

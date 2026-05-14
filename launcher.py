@@ -1,6 +1,6 @@
 """
 健檢標案追蹤系統 — 桌面啟動器
-啟動 Streamlit server，並用 pywebview 開獨立視窗，系統匣常駐。
+用 Edge/Chrome App 模式開獨立視窗（無網址列），系統匣常駐。
 """
 import os
 import sys
@@ -11,15 +11,31 @@ import time
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 PORT = 8501
-_proc = None
+_streamlit_proc = None
+_browser_proc = None
 
+
+# ── 工具函式 ─────────────────────────────────────────────
 
 def find_python():
     portable = os.path.join(APP_DIR, 'python-portable', 'python.exe')
     if os.path.exists(portable):
         return portable
-    # 走到這裡代表使用系統 Python（開發環境用）
     return sys.executable
+
+
+def find_browser():
+    """找 Edge 或 Chrome，優先 Edge（Windows 內建）"""
+    candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
 
 def wait_for_port(timeout=30):
@@ -33,13 +49,15 @@ def wait_for_port(timeout=30):
     return False
 
 
+# ── 啟動 Streamlit ────────────────────────────────────────
+
 def start_streamlit():
-    global _proc
+    global _streamlit_proc
     python = find_python()
     app_py = os.path.join(APP_DIR, 'app.py')
     os.makedirs(os.path.join(APP_DIR, 'data'), exist_ok=True)
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
-    _proc = subprocess.Popen(
+    _streamlit_proc = subprocess.Popen(
         [python, '-m', 'streamlit', 'run', app_py,
          '--server.headless', 'true',
          '--server.port', str(PORT),
@@ -49,77 +67,74 @@ def start_streamlit():
     )
 
 
+def open_window():
+    """用 App 模式開獨立視窗（沒有瀏覽器 UI）"""
+    global _browser_proc
+    browser = find_browser()
+    url = f'http://127.0.0.1:{PORT}'
+    if browser:
+        _browser_proc = subprocess.Popen([
+            browser,
+            f'--app={url}',
+            '--window-size=1280,860',
+            '--disable-extensions',
+        ])
+    else:
+        # 找不到 Edge/Chrome，退回系統預設瀏覽器
+        import webbrowser
+        webbrowser.open(url)
+
+
 def cleanup():
-    if _proc and _proc.poll() is None:
-        _proc.terminate()
+    if _streamlit_proc and _streamlit_proc.poll() is None:
+        _streamlit_proc.terminate()
 
 
-# ── 啟動 Streamlit ────────────────────────────────────────
+# ── 主流程 ───────────────────────────────────────────────
+
 start_streamlit()
-ready = wait_for_port()
-if not ready:
+
+if not wait_for_port():
     import ctypes
-    ctypes.windll.user32.MessageBoxW(0, '無法啟動服務，請確認 Python 環境正常。', '錯誤', 0x10)
+    ctypes.windll.user32.MessageBoxW(
+        0, '無法啟動服務，請確認 Python 環境正常。', '錯誤', 0x10)
     sys.exit(1)
 
-# ── 載入 GUI 套件 ─────────────────────────────────────────
-import webview
+open_window()
+
+# ── 系統匣 ───────────────────────────────────────────────
+
 import pystray
 from PIL import Image, ImageDraw
 
-# ── 建立系統匣圖示 ────────────────────────────────────────
+
 def _make_icon():
     img = Image.new('RGBA', (64, 64), (33, 150, 243, 255))
     d = ImageDraw.Draw(img)
-    d.rectangle([28,  8, 36, 56], fill='white')   # 十字縱線
-    d.rectangle([ 8, 28, 56, 36], fill='white')   # 十字橫線
+    d.rectangle([28,  8, 36, 56], fill='white')
+    d.rectangle([ 8, 28, 56, 36], fill='white')
     return img
 
 
-_window = None
+def _on_open(icon, item):
+    open_window()
 
 
-def _show():
-    if _window:
-        _window.show()
-        _window.restore()
-
-
-def _quit(icon, _item):
+def _on_quit(icon, item):
     cleanup()
     icon.stop()
-    if _window:
-        _window.destroy()
 
 
-_tray = pystray.Icon(
+tray = pystray.Icon(
     '健檢標案追蹤',
     _make_icon(),
     '健檢標案追蹤系統',
     pystray.Menu(
-        pystray.MenuItem('開啟視窗', _show, default=True),
+        pystray.MenuItem('開啟視窗', _on_open, default=True),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem('關閉程式', _quit),
+        pystray.MenuItem('關閉程式', _on_quit),
     ),
 )
-threading.Thread(target=_tray.run, daemon=True).start()
 
-# ── 建立 webview 視窗 ─────────────────────────────────────
-_window = webview.create_window(
-    '健檢標案追蹤系統',
-    f'http://127.0.0.1:{PORT}',
-    width=1280,
-    height=860,
-    min_size=(900, 600),
-)
-
-
-def _on_closing():
-    _window.hide()
-    return False   # 攔截關閉，改為隱藏到系統匣
-
-
-_window.events.closing += _on_closing
-
-webview.start()
+tray.run()   # 阻塞直到使用者點「關閉程式」
 cleanup()

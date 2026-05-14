@@ -106,7 +106,7 @@ def parse_tender_name(cell_html: str) -> str:
     return m.group(1) if m else ""
 
 
-def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], str | None]:
+def parse_page(html: str, keyword: str, fetched_at: str, proc_filter: list = None) -> tuple[list[dict], str | None]:
     """
     解析搜尋結果頁
     回傳 (標案清單, 下一頁參數 or None)
@@ -150,8 +150,9 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
         # 採購性質
         procurement_type = cells[5].get_text(strip=True)
 
-        # 採購性質篩選
-        if PROCUREMENT_TYPES and procurement_type and procurement_type not in PROCUREMENT_TYPES:
+        # 採購性質篩選（空清單 = 全部）
+        active_filter = proc_filter if proc_filter is not None else PROCUREMENT_TYPES
+        if active_filter and procurement_type and procurement_type not in active_filter:
             continue
 
         # 公告日期 (ROC format)
@@ -213,7 +214,8 @@ def parse_page(html: str, keyword: str, fetched_at: str) -> tuple[list[dict], st
 
 def search_by_field(session: requests.Session, keyword: str,
                     start_date: str, end_date: str,
-                    search_field: str = "tenderName") -> list[dict]:
+                    search_field: str = "tenderName",
+                    proc_filter: list = None) -> list[dict]:
     """搜尋單一欄位的所有頁，回傳標案清單"""
     all_results = []
     fetched_at = datetime.now().isoformat()
@@ -234,7 +236,7 @@ def search_by_field(session: requests.Session, keyword: str,
             print(f"    [錯誤] {e}")
             break
 
-        page_results, next_param = parse_page(resp.text, keyword, fetched_at)
+        page_results, next_param = parse_page(resp.text, keyword, fetched_at, proc_filter)
         all_results.extend(page_results)
         print(f"    [{search_field}] 第{page_num}頁: {len(page_results)} 筆")
 
@@ -253,11 +255,12 @@ def search_by_field(session: requests.Session, keyword: str,
 
 
 def search_keyword(session: requests.Session, keyword: str,
-                   start_date: str, end_date: str) -> list[dict]:
+                   start_date: str, end_date: str,
+                   proc_filter: list = None) -> list[dict]:
     """搜尋標案名稱 + 機關名稱，合併去重後回傳"""
     seen = {}
     for field in ("tenderName", "orgName"):
-        results = search_by_field(session, keyword, start_date, end_date, field)
+        results = search_by_field(session, keyword, start_date, end_date, field, proc_filter)
         for r in results:
             if r["tender_id"] not in seen:
                 seen[r["tender_id"]] = r
@@ -265,7 +268,8 @@ def search_keyword(session: requests.Session, keyword: str,
     return list(seen.values())
 
 
-def run_scraper(start_date: str = None, end_date: str = None) -> int:
+def run_scraper(start_date: str = None, end_date: str = None,
+                procurement_types: list = None) -> int:
     """
     執行爬蟲
     start_date, end_date: "YYYY/MM/DD" 西元年，預設近 7 天
@@ -284,11 +288,12 @@ def run_scraper(start_date: str = None, end_date: str = None) -> int:
         print(f"已清除 {deleted} 筆 3 個月前的舊資料")
 
     KEYWORDS = get_keywords()
+    proc_filter = procurement_types  # None = 使用 config 預設
 
     print(f"\n{'='*55}")
     print(f"搜尋日期: {start_date} ~ {end_date}")
     print(f"關鍵字: {KEYWORDS}")
-    print(f"採購性質: {PROCUREMENT_TYPES or '全部'}")
+    print(f"採購性質: {proc_filter or PROCUREMENT_TYPES or '全部'}")
     print(f"{'='*55}\n")
 
     session = make_session()
@@ -297,7 +302,7 @@ def run_scraper(start_date: str = None, end_date: str = None) -> int:
     for keyword in KEYWORDS:
         print(f"[搜尋] 「{keyword}」")
         try:
-            results = search_keyword(session, keyword, start_date, end_date)
+            results = search_keyword(session, keyword, start_date, end_date, proc_filter)
             for r in results:
                 upsert_tender(r)
             total += len(results)
