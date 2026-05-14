@@ -16,7 +16,9 @@ if exist "%~dp0python-portable\python.exe" (
     python --version 2>nul
     if errorlevel 1 (
         echo [錯誤] 找不到 Python！
-        echo 請安裝 Python 3.10 以上版本，或將 WinPython 解壓到 python-portable 資料夾
+        echo 請先安裝 Python 3.10 以上版本：
+        echo   https://www.python.org/downloads/
+        echo 安裝時請勾選「Add Python to PATH」
         pause
         exit /b 1
     )
@@ -25,15 +27,13 @@ if exist "%~dp0python-portable\python.exe" (
 )
 
 echo.
-echo 安裝套件中...
+echo 安裝套件中（首次約需 2~5 分鐘）...
 %PYTHON% -m pip install --upgrade pip --quiet
 %PYTHON% -m pip install -r requirements.txt --quiet
-%PYTHON% -m pip install pywebview pystray pillow --quiet
 
 echo.
 echo ===============================================
 echo  安裝完成！
-echo  - 執行「健檢標案追蹤系統.exe」開啟桌面程式
-echo  - 或執行「啟動系統.bat」使用瀏覽器版本
+echo  請雙擊「健檢標案追蹤系統.exe」開啟程式
 echo ===============================================
 pause

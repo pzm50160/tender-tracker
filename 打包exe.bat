@@ -16,7 +16,7 @@ if exist "%~dp0python-portable\python.exe" (
 )
 
 echo 安裝打包工具...
-%PYTHON% -m pip install pyinstaller pywebview pystray pillow --quiet
+%PYTHON% -m pip install pyinstaller pystray pillow --quiet
 
 echo.
 echo 開始打包...
