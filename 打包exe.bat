@@ -1,10 +1,11 @@
 @echo off
 chcp 65001 > nul
-title 打包 launcher.exe
+title 打包 launcher.exe（全自包，無需安裝 Python）
 cd /d "%~dp0"
 
 echo ===============================================
-echo  打包桌面程式（launcher.exe）
+echo  打包桌面程式（含 Python + 所有套件）
+echo  對方電腦不需另裝任何東西
 echo ===============================================
 echo.
 
@@ -19,25 +20,53 @@ echo 安裝打包工具...
 %PYTHON% -m pip install pyinstaller pystray pillow --quiet
 
 echo.
-echo 開始打包...
-%PYTHON% -m PyInstaller --noconfirm --onefile --windowed ^
+echo 開始打包（首次約需 3~10 分鐘，請耐心等候）...
+%PYTHON% -m PyInstaller --noconfirm --onedir --windowed ^
     --name "健檢標案追蹤系統" ^
-    --icon NONE ^
+    --collect-all streamlit ^
+    --collect-all altair ^
+    --collect-all pandas ^
+    --collect-all numpy ^
+    --collect-all pydeck ^
+    --collect-all requests ^
+    --collect-all bs4 ^
+    --collect-all PIL ^
+    --collect-all pystray ^
+    --copy-metadata streamlit ^
+    --copy-metadata pandas ^
     launcher.py
 
-echo.
-if exist "dist\健檢標案追蹤系統.exe" (
-    copy /Y "dist\健檢標案追蹤系統.exe" "健檢標案追蹤系統.exe"
-    echo ===============================================
-    echo  完成！已產生「健檢標案追蹤系統.exe」
-    echo  將以下檔案複製到目標電腦同一個資料夾：
-    echo    - 健檢標案追蹤系統.exe
-    echo    - app.py / database.py / config.py / scraper.py
-    echo    - .streamlit\
-    echo    - python-portable\  （含所有套件）
-    echo ===============================================
-) else (
+if errorlevel 1 (
+    echo.
     echo [錯誤] 打包失敗，請查看上方訊息
+    pause
+    exit /b 1
 )
+
+REM 把 .py 應用程式檔案複製到 dist 資料夾旁
+set DIST=dist\健檢標案追蹤系統
+echo.
+echo 複製應用程式檔案...
+copy /Y app.py      "%DIST%\"
+copy /Y database.py "%DIST%\"
+copy /Y scraper.py  "%DIST%\"
+copy /Y config.py   "%DIST%\"
+copy /Y 自動搜尋.py  "%DIST%\"
+copy /Y 安裝套件.bat "%DIST%\"
+
+if not exist "%DIST%\.streamlit" mkdir "%DIST%\.streamlit"
+copy /Y .streamlit\config.toml "%DIST%\.streamlit\"
+
+if not exist "%DIST%\data" mkdir "%DIST%\data"
+
+echo.
+echo ===============================================
+echo  完成！發佈資料夾：dist\健檢標案追蹤系統\
+echo.
+echo  傳給對方的方式：
+echo    將整個「健檢標案追蹤系統」資料夾壓縮成 ZIP
+echo    對方解壓縮後，直接雙擊「健檢標案追蹤系統.exe」
+echo    不需安裝 Python 或任何套件！
+echo ===============================================
 echo.
 pause

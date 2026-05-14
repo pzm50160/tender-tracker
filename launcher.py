@@ -1,6 +1,6 @@
 """
 健檢標案追蹤系統 — 桌面啟動器
-用 Edge/Chrome App 模式開獨立視窗（無網址列），系統匣常駐。
+打包後為全自包 .exe，不需另裝 Python。
 """
 import os
 import sys
@@ -9,23 +9,35 @@ import subprocess
 import threading
 import time
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+# 若是 PyInstaller 打包版，APP_DIR 以 .exe 所在目錄為主
+if getattr(sys, 'frozen', False):
+    APP_DIR = os.path.dirname(sys.executable)
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
 PORT = 8501
 _streamlit_proc = None
-_browser_proc = None
+_browser_proc   = None
 
 
-# ── 工具函式 ─────────────────────────────────────────────
+# ── Streamlit 伺服器模式（打包版自呼叫用）────────────────────
+if '--_streamlit-server' in sys.argv:
+    app_py = os.path.join(APP_DIR, 'app.py')
+    os.makedirs(os.path.join(APP_DIR, 'data'), exist_ok=True)
+    sys.argv = [
+        'streamlit', 'run', app_py,
+        '--server.headless=true',
+        f'--server.port={PORT}',
+        '--server.address=127.0.0.1',
+    ]
+    from streamlit.web import cli as _stcli
+    _stcli.main()
+    sys.exit(0)
 
-def find_python():
-    portable = os.path.join(APP_DIR, 'python-portable', 'python.exe')
-    if os.path.exists(portable):
-        return portable
-    return sys.executable
 
+# ── 工具函式 ─────────────────────────────────────────────────
 
 def find_browser():
-    """找 Edge 或 Chrome，優先 Edge（Windows 內建）"""
     candidates = [
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -38,37 +50,40 @@ def find_browser():
     return None
 
 
-def wait_for_port(timeout=30):
+def wait_for_port(timeout=60):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             with socket.create_connection(('127.0.0.1', PORT), timeout=1):
                 return True
         except OSError:
-            time.sleep(0.3)
+            time.sleep(0.5)
     return False
 
 
-# ── 啟動 Streamlit ────────────────────────────────────────
+# ── 啟動 Streamlit ────────────────────────────────────────────
 
 def start_streamlit():
     global _streamlit_proc
-    python = find_python()
-    app_py = os.path.join(APP_DIR, 'app.py')
-    os.makedirs(os.path.join(APP_DIR, 'data'), exist_ok=True)
     flags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
-    _streamlit_proc = subprocess.Popen(
-        [python, '-m', 'streamlit', 'run', app_py,
-         '--server.headless', 'true',
-         '--server.port', str(PORT),
-         '--server.address', '127.0.0.1'],
-        cwd=APP_DIR,
-        creationflags=flags,
-    )
+
+    if getattr(sys, 'frozen', False):
+        # 打包版：用自身 exe + 特殊旗標啟動 Streamlit 伺服器
+        cmd = [sys.executable, '--_streamlit-server']
+    else:
+        # 開發版：用系統 Python 或 portable Python
+        portable = os.path.join(APP_DIR, 'python-portable', 'python.exe')
+        python = portable if os.path.exists(portable) else sys.executable
+        app_py = os.path.join(APP_DIR, 'app.py')
+        cmd = [python, '-m', 'streamlit', 'run', app_py,
+               '--server.headless', 'true',
+               '--server.port', str(PORT),
+               '--server.address', '127.0.0.1']
+
+    _streamlit_proc = subprocess.Popen(cmd, cwd=APP_DIR, creationflags=flags)
 
 
 def open_window():
-    """用 App 模式開獨立視窗（沒有瀏覽器 UI）"""
     global _browser_proc
     browser = find_browser()
     url = f'http://127.0.0.1:{PORT}'
@@ -80,7 +95,6 @@ def open_window():
             '--disable-extensions',
         ])
     else:
-        # 找不到 Edge/Chrome，退回系統預設瀏覽器
         import webbrowser
         webbrowser.open(url)
 
@@ -90,19 +104,19 @@ def cleanup():
         _streamlit_proc.terminate()
 
 
-# ── 主流程 ───────────────────────────────────────────────
+# ── 主流程 ───────────────────────────────────────────────────
 
 start_streamlit()
 
 if not wait_for_port():
     import ctypes
     ctypes.windll.user32.MessageBoxW(
-        0, '無法啟動服務，請確認 Python 環境正常。', '錯誤', 0x10)
+        0, '無法啟動服務，請確認程式完整性。', '錯誤', 0x10)
     sys.exit(1)
 
 open_window()
 
-# ── 系統匣 ───────────────────────────────────────────────
+# ── 系統匣 ───────────────────────────────────────────────────
 
 import pystray
 from PIL import Image, ImageDraw
@@ -136,5 +150,5 @@ tray = pystray.Icon(
     ),
 )
 
-tray.run()   # 阻塞直到使用者點「關閉程式」
+tray.run()
 cleanup()
