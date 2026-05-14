@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 
-from database import init_db, get_tenders, mark_read, mark_all_read, get_fetch_logs, get_stats, get_keywords, save_keywords
+from database import init_db, get_tenders, mark_read, mark_all_read, mark_bid, get_fetch_logs, get_stats, get_keywords, save_keywords
 from config import PROCUREMENT_TYPES, MIN_BUDGET, MAX_BUDGET
 
 st.set_page_config(
@@ -42,7 +42,8 @@ footer                               { display: none !important; }
 .blue  { background:#e3f2fd; color:#1565C0; }
 .green { background:#e8f5e9; color:#2E7D32; }
 .red   { background:#ffebee; color:#B71C1C; }
-.gray  { background:#f5f5f5; color:#424242; }
+.gray   { background:#f5f5f5; color:#424242; }
+.purple { background:#ede7f6; color:#4527A0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,6 +61,7 @@ with st.sidebar:
         date_to = st.date_input("至", value=date.today(), label_visibility="visible")
     kw_filter = st.text_input("關鍵字", placeholder="機關名稱 / 標案名稱")
     unread_only = st.toggle("只看未讀", value=False)
+    bid_only    = st.toggle("顯示所有已投標", value=False)
 
     st.divider()
 
@@ -119,6 +121,7 @@ tenders = get_tenders(
     keyword=kw_filter or None,
     unread_only=unread_only,
     active_keywords=keywords,
+    bid_only=bid_only,
 )
 
 unread_count = sum(1 for t in tenders if not t["is_read"])
@@ -148,9 +151,11 @@ with tab_list:
         st.caption(f"共 {len(tenders)} 筆")
         for t in tenders:
             unread = not t["is_read"]
+            is_bid_flag = bool(t.get("is_bid"))
             card_cls = "card unread" if unread else "card"
             budget_str = f"{t['budget']:>12,.0f} 元" if t["budget"] else "未揭露"
             unread_badge = '<span class="badge red">未讀</span>' if unread else ""
+            bid_badge    = '<span class="badge purple">已投標</span>' if is_bid_flag else ""
             proc_badge   = f'<span class="badge blue">{t["procurement_type"] or "—"}</span>'
             kw_badge     = f'<span class="badge green">{t["matched_keyword"]}</span>'
             url_part = (f' | <a href="{t["detail_url"]}" target="_blank">查看詳情 ↗</a>'
@@ -160,7 +165,7 @@ with tab_list:
 
             st.markdown(f"""
 <div class="{card_cls}">
-  <div class="card-title">{unread_badge}{proc_badge}{kw_badge} {tender_display}</div>
+  <div class="card-title">{unread_badge}{bid_badge}{proc_badge}{kw_badge} {tender_display}</div>
   <div class="card-meta">
     🏢 {t["agency"] or "—"} &nbsp;&nbsp;
     📋 {t["tender_case_no"] or "—"} &nbsp;&nbsp;
@@ -170,9 +175,16 @@ with tab_list:
   </div>
 </div>""", unsafe_allow_html=True)
 
+            btn_cols = st.columns([1, 1, 6])
             if unread:
-                if st.button("標為已讀", key=f"r_{t['id']}"):
+                if btn_cols[0].button("標為已讀", key=f"r_{t['id']}"):
                     mark_read(t["tender_id"]); st.rerun()
+            if is_bid_flag:
+                if btn_cols[1].button("取消已投標", key=f"ub_{t['id']}"):
+                    mark_bid(t["tender_id"], False); st.rerun()
+            else:
+                if btn_cols[1].button("標為已投標", key=f"b_{t['id']}"):
+                    mark_bid(t["tender_id"], True); st.rerun()
 
 
 # ── 表格 / 匯出 ──────────────────────────────────────────

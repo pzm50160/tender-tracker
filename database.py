@@ -89,7 +89,8 @@ def init_db():
             detail_url       TEXT,
             matched_keyword  TEXT,
             fetched_at       TEXT,
-            is_read          INTEGER DEFAULT 0
+            is_read          INTEGER DEFAULT 0,
+            is_bid           INTEGER DEFAULT 0
         )
     """)
     # 遷移：為舊資料表補欄位
@@ -98,9 +99,17 @@ def init_db():
             cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS opening_date TEXT")
         except Exception:
             conn.rollback()
+        try:
+            cur.execute("ALTER TABLE tenders ADD COLUMN IF NOT EXISTS is_bid INTEGER DEFAULT 0")
+        except Exception:
+            conn.rollback()
     else:
         try:
             cur.execute("ALTER TABLE tenders ADD COLUMN opening_date TEXT")
+        except Exception:
+            pass
+        try:
+            cur.execute("ALTER TABLE tenders ADD COLUMN is_bid INTEGER DEFAULT 0")
         except Exception:
             pass
     cur.execute(f"""
@@ -167,32 +176,44 @@ def upsert_tender(t: dict):
         conn.close()
 
 
-def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False, active_keywords=None):
+def get_tenders(date_from=None, date_to=None, keyword=None, unread_only=False, active_keywords=None, bid_only=False):
     ph = _ph()
     conn = get_conn()
     cur = conn.cursor()
     sql = "SELECT * FROM tenders WHERE 1=1"
     params = []
-    if date_from:
-        sql += f" AND publish_date >= {ph}"
-        params.append(date_from)
-    if date_to:
-        sql += f" AND publish_date <= {ph}"
-        params.append(date_to)
+    if bid_only:
+        sql += " AND is_bid = 1"
+    else:
+        if date_from:
+            sql += f" AND publish_date >= {ph}"
+            params.append(date_from)
+        if date_to:
+            sql += f" AND publish_date <= {ph}"
+            params.append(date_to)
+        if unread_only:
+            sql += " AND is_read = 0"
+        if active_keywords:
+            placeholders = ",".join([ph] * len(active_keywords))
+            sql += f" AND matched_keyword IN ({placeholders})"
+            params += list(active_keywords)
     if keyword:
         sql += f" AND (tender_name LIKE {ph} OR matched_keyword LIKE {ph} OR agency LIKE {ph})"
         params += [f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"]
-    if unread_only:
-        sql += " AND is_read = 0"
-    if active_keywords:
-        placeholders = ",".join([ph] * len(active_keywords))
-        sql += f" AND matched_keyword IN ({placeholders})"
-        params += list(active_keywords)
     sql += " ORDER BY publish_date DESC, fetched_at DESC"
     cur.execute(sql, params)
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def mark_bid(tender_id: str, bid: bool = True):
+    ph = _ph()
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE tenders SET is_bid = {ph} WHERE tender_id = {ph}", (1 if bid else 0, tender_id))
+    conn.commit()
+    conn.close()
 
 
 def mark_read(tender_id: str):
