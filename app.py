@@ -18,8 +18,12 @@ st.set_page_config(
 
 init_db()
 
+CARDS_PER_PAGE = 20
+
 if "cache_buster" not in st.session_state:
     st.session_state["cache_buster"] = 0
+if "page" not in st.session_state:
+    st.session_state["page"] = 0
 
 @st.cache_data(show_spinner=False)
 def fetch_tenders(cb, date_from, date_to, keyword, unread_only, active_keywords_tuple, bid_only):
@@ -131,6 +135,12 @@ if st.session_state.get("do_search"):
 # ── 主畫面 ───────────────────────────────────────────────
 st.title("政府採購｜健檢標案追蹤系統")
 
+# 篩選條件變動時重置頁碼
+_filter_key = (date_from, date_to, kw_filter, unread_only, bid_only, tuple(keywords))
+if st.session_state.get("last_filter_key") != _filter_key:
+    st.session_state["last_filter_key"] = _filter_key
+    st.session_state["page"] = 0
+
 # 取得資料
 tenders = fetch_tenders(
     cb=st.session_state["cache_buster"],
@@ -166,8 +176,25 @@ with tab_list:
     if not tenders:
         st.info("目前沒有資料。請點左側「開始搜尋」。")
     else:
-        st.caption(f"共 {len(tenders)} 筆")
-        for t in tenders:
+        total_pages = max(1, (len(tenders) + CARDS_PER_PAGE - 1) // CARDS_PER_PAGE)
+        page = min(st.session_state["page"], total_pages - 1)
+        st.session_state["page"] = page
+        page_tenders = tenders[page * CARDS_PER_PAGE:(page + 1) * CARDS_PER_PAGE]
+
+        # 分頁控制列
+        pg_cols = st.columns([1, 1, 3, 1, 1])
+        if pg_cols[0].button("⏮", disabled=(page == 0)):
+            st.session_state["page"] = 0; st.rerun()
+        if pg_cols[1].button("◀", disabled=(page == 0)):
+            st.session_state["page"] -= 1; st.rerun()
+        pg_cols[2].markdown(f"<div style='text-align:center;padding-top:6px'>第 {page+1} / {total_pages} 頁　共 {len(tenders)} 筆</div>", unsafe_allow_html=True)
+        if pg_cols[3].button("▶", disabled=(page >= total_pages - 1)):
+            st.session_state["page"] += 1; st.rerun()
+        if pg_cols[4].button("⏭", disabled=(page >= total_pages - 1)):
+            st.session_state["page"] = total_pages - 1; st.rerun()
+
+        st.divider()
+        for t in page_tenders:
             unread = not t["is_read"]
             is_bid_flag = bool(t.get("is_bid"))
             if is_bid_flag and unread:
