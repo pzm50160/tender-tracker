@@ -18,39 +18,16 @@ st.set_page_config(
 
 init_db()
 
-# 在資料讀取前先處理待執行的 DB 操作，確保順序正確
-_pm = st.session_state.pop("_pending_mutation", None)
-if _pm:
-    op = _pm[0]
-    if op == "read":
-        mark_read(_pm[1])
-    elif op == "all_read":
-        mark_all_read()
-    elif op == "bid":
-        mark_bid(_pm[1], _pm[2])
-    st.session_state["cache_buster"] = st.session_state.get("cache_buster", 0) + 1
-
 CARDS_PER_PAGE = 20
 
-if "cache_buster" not in st.session_state:
-    st.session_state["cache_buster"] = 0
 if "page" not in st.session_state:
     st.session_state["page"] = 0
 
-@st.cache_data(show_spinner=False)
-def fetch_tenders(cb, date_from, date_to, keyword, unread_only, active_keywords_tuple, bid_only):
-    return get_tenders(
-        date_from=date_from, date_to=date_to, keyword=keyword,
-        unread_only=unread_only,
-        active_keywords=list(active_keywords_tuple) if active_keywords_tuple else None,
-        bid_only=bid_only,
-    )
-
 def _do_mark_read(tender_id):
-    st.session_state["_pending_mutation"] = ("read", tender_id)
+    mark_read(tender_id)
 
 def _do_toggle_bid(tender_id, current_bid):
-    st.session_state["_pending_mutation"] = ("bid", tender_id, not current_bid)
+    mark_bid(tender_id, not current_bid)
 
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
@@ -142,7 +119,6 @@ if st.session_state.get("do_search"):
                 end_date=st.session_state["s_to"],
                 procurement_types=st.session_state.get("s_types") or None,
             )
-            invalidate_cache()
             if count > 0:
                 st.success(f"搜尋完成！共找到並更新 {count} 筆標案")
             else:
@@ -161,14 +137,13 @@ if st.session_state.get("last_filter_key") != _filter_key:
     st.session_state["last_filter_key"] = _filter_key
     st.session_state["page"] = 0
 
-# 取得資料
-tenders = fetch_tenders(
-    cb=st.session_state["cache_buster"],
+# 取得資料（直接查詢，不快取，避免頁面重整後顯示舊資料）
+tenders = get_tenders(
     date_from=date_from.strftime("%Y/%m/%d"),
     date_to=date_to.strftime("%Y/%m/%d"),
     keyword=kw_filter or None,
     unread_only=unread_only,
-    active_keywords_tuple=tuple(keywords),
+    active_keywords=list(keywords) if keywords else None,
     bid_only=bid_only,
 )
 
@@ -191,7 +166,7 @@ with tab_list:
     col_a, col_b, _ = st.columns([1, 1, 4])
     with col_a:
         def _do_mark_all_read():
-            st.session_state["_pending_mutation"] = ("all_read",)
+            mark_all_read()
         st.button("全部已讀", on_click=_do_mark_all_read)
 
     if not tenders:
