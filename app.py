@@ -27,6 +27,12 @@ st.markdown("""
 .stDeployButton            { display: none !important; }
 #MainMenu                  { visibility: hidden !important; }
 footer                     { visibility: hidden !important; }
+/* 隱藏右下角 Manage app 按鈕（多組 selector 廣撒網） */
+[data-testid="manage-app-button"]    { display: none !important; }
+[data-testid="stBottom"]             { display: none !important; }
+.stBottom                            { display: none !important; }
+[class*="manageApp"]                 { display: none !important; }
+[class*="manage-app"]                { display: none !important; }
 
 .card { background:#f8f9fa; border-left:4px solid #2196F3; border-radius:6px; padding:12px 16px; margin-bottom:10px; }
 .card.unread { border-left-color:#E53935; background:#fff5f5; }
