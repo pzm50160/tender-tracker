@@ -165,6 +165,43 @@ with st.sidebar:
         else:
             st.error(f"設定失敗：{r.stderr or r.stdout}")
 
+    st.divider()
+    st.subheader("程式更新")
+    _repo_dir = os.path.dirname(os.path.abspath(__file__))
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def _check_update(t=0):
+        import subprocess
+        subprocess.run(["git", "fetch", "origin"], cwd=_repo_dir,
+                       capture_output=True, timeout=10)
+        local  = subprocess.run(["git", "rev-parse", "HEAD"],
+                                cwd=_repo_dir, capture_output=True, text=True).stdout.strip()
+        remote = subprocess.run(["git", "rev-parse", "origin/main"],
+                                cwd=_repo_dir, capture_output=True, text=True).stdout.strip()
+        return local, remote
+
+    try:
+        _local, _remote = _check_update()
+        if _local and _remote and _local != _remote:
+            st.warning(f"有新版本可更新")
+            st.caption(f"目前：`{_local[:7]}`　最新：`{_remote[:7]}`")
+            if st.button("立即更新", type="primary", use_container_width=True):
+                import subprocess
+                r = subprocess.run(["git", "pull", "origin", "main"],
+                                   cwd=_repo_dir, capture_output=True, text=True, timeout=30)
+                _check_update.clear()
+                if r.returncode == 0:
+                    st.success("更新完成！請重新啟動程式（關閉並重開啟動系統.bat）")
+                else:
+                    st.error(f"更新失敗：{r.stderr or r.stdout}")
+        else:
+            st.caption(f"已是最新版本 `{_local[:7]}`")
+            if st.button("檢查更新", use_container_width=True):
+                _check_update.clear()
+                st.rerun()
+    except Exception as _e:
+        st.caption(f"無法檢查更新：{_e}")
+
 # ── 執行搜尋 ─────────────────────────────────────────────
 if st.session_state.get("do_search"):
     st.session_state["do_search"] = False
