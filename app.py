@@ -34,7 +34,12 @@ def _do_toggle_read(tender_id, is_read):
     conn.close()
 
 def _do_toggle_bid(tender_id, current_bid):
-    mark_bid(tender_id, not current_bid)
+    from database import get_conn
+    conn = get_conn()
+    conn.execute("UPDATE tenders SET is_bid = ? WHERE tender_id = ?",
+                 (0 if current_bid else 1, tender_id))
+    conn.commit()
+    conn.close()
 
 # ── 樣式 ─────────────────────────────────────────────────
 st.markdown("""
