@@ -62,6 +62,10 @@ if not exist "%DIST%\.streamlit" mkdir "%DIST%\.streamlit"
 copy /Y .streamlit\config.toml "%DIST%\.streamlit\"
 
 if not exist "%DIST%\data" mkdir "%DIST%\data"
+REM 清除 dist 裡的資料庫，避免打包時把開發機的資料一起帶給對方
+del /Q "%DIST%\data\*.db" 2>nul
+del /Q "%DIST%\data\*.db-shm" 2>nul
+del /Q "%DIST%\data\*.db-wal" 2>nul
 
 REM 寫入目前 git commit SHA 作為版本標記（供 app 內建更新比對用）
 for /f %%i in ('git rev-parse HEAD 2^>nul') do set GIT_SHA=%%i
