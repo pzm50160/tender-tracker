@@ -63,6 +63,15 @@ copy /Y .streamlit\config.toml "%DIST%\.streamlit\"
 
 if not exist "%DIST%\data" mkdir "%DIST%\data"
 
+REM 寫入目前 git commit SHA 作為版本標記（供 app 內建更新比對用）
+for /f %%i in ('git rev-parse HEAD 2^>nul') do set GIT_SHA=%%i
+if defined GIT_SHA (
+    echo %GIT_SHA%> "%DIST%\.version"
+    echo 版本標記已寫入：%GIT_SHA:~0,7%
+) else (
+    echo 警告：找不到 git，略過版本標記
+)
+
 echo.
 echo ===============================================
 echo  完成！發佈資料夾：dist\健檢標案追蹤系統\

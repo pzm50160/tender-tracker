@@ -174,7 +174,7 @@ with st.sidebar:
     st.subheader("程式更新")
     _repo_dir = os.path.dirname(os.path.abspath(__file__))
     _REPO     = "pzm50160/tender-tracker"
-    _UPDATE_FILES = ["app.py", "database.py", "scraper.py", "自動搜尋.py"]
+    _UPDATE_FILES = ["app.py", "database.py", "scraper.py", "config.py", "自動搜尋.py"]
     _VERSION_FILE = os.path.join(_repo_dir, ".version")
 
     def _local_sha():
