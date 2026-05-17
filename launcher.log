@@ -1,0 +1,6 @@
+[04:11:15.908] [main] 啟動，frozen=False, exe=C:\Users\潘昭名\AppData\Local\Python\pythoncore-3.14-64\python.exe
+[04:11:15.909] [main] APP_DIR=D:\dev\爬蟲
+[04:11:15.914] [main] start_streamlit() 完成，PID=7764
+[04:11:15.924] [main] port 已開，呼叫 open_window()
+[04:11:16.144] [main] 建立 tray icon
+[04:11:16.146] [main] tray.run() 開始

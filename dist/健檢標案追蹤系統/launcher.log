@@ -1,0 +1,11 @@
+[00:24:51.331] [main] 啟動，frozen=True, exe=D:\dev\爬蟲\dist\健檢標案追蹤系統\健檢標案追蹤系統.exe
+[00:24:51.333] [main] APP_DIR=D:\dev\爬蟲\dist\健檢標案追蹤系統
+[00:24:51.407] [main] start_streamlit() 完成，PID=32280
+[00:24:51.614] [server] 啟動 streamlit server, APP_DIR=D:\dev\爬蟲\dist\健檢標案追蹤系統
+[00:24:52.955] [main] port 已開，呼叫 open_window()
+[00:24:53.055] [main] 建立 tray icon
+[00:24:53.058] [main] tray.run() 開始
+[00:25:14.044] [main] 啟動，frozen=True, exe=D:\dev\爬蟲\dist\健檢標案追蹤系統\健檢標案追蹤系統.exe
+[00:25:14.046] [main] APP_DIR=D:\dev\爬蟲\dist\健檢標案追蹤系統
+[00:25:14.047] [main] 已有實例在執行，嘗試聚焦既有視窗
+[00:25:14.067] [main] 已聚焦既有視窗
