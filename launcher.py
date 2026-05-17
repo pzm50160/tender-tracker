@@ -142,9 +142,18 @@ import ctypes as _ctypes
 _MUTEX_NAME = '健檢標案追蹤系統_SingleInstance'
 _mutex = _ctypes.windll.kernel32.CreateMutexW(None, True, _MUTEX_NAME)
 if _ctypes.windll.kernel32.GetLastError() == 183:   # ERROR_ALREADY_EXISTS
-    _log("[main] 已有實例在執行，等待 server 後開瀏覽器視窗")
-    wait_for_port(timeout=10)
-    open_window()
+    _log("[main] 已有實例在執行，嘗試聚焦既有視窗")
+    # 找已開的 app 視窗並帶到前景；找不到才開新視窗
+    SW_RESTORE = 9
+    hwnd = _ctypes.windll.user32.FindWindowW(None, "健檢標案追蹤")
+    if hwnd:
+        _ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
+        _ctypes.windll.user32.SetForegroundWindow(hwnd)
+        _log("[main] 已聚焦既有視窗")
+    else:
+        _log("[main] 未找到既有視窗，開新視窗")
+        wait_for_port(timeout=10)
+        open_window()
     sys.exit(0)
 
 start_streamlit()
@@ -173,8 +182,17 @@ def _make_icon():
     return img
 
 
+def _focus_or_open():
+    SW_RESTORE = 9
+    hwnd = _ctypes.windll.user32.FindWindowW(None, "健檢標案追蹤")
+    if hwnd:
+        _ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
+        _ctypes.windll.user32.SetForegroundWindow(hwnd)
+    else:
+        open_window()
+
 def _on_open(icon, item):
-    open_window()
+    _focus_or_open()
 
 
 def _on_quit(icon, item):
