@@ -16,6 +16,10 @@ if exist "%~dp0python-portable\python.exe" (
     set PYTHON=python
 )
 
+echo 關閉執行中的舊版程式...
+taskkill /F /IM "健檢標案追蹤系統.exe" /T >nul 2>&1
+timeout /t 2 /nobreak >nul
+
 echo 安裝打包工具...
 %PYTHON% -m pip install pyinstaller pystray pillow --quiet
 

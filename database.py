@@ -39,6 +39,8 @@ def save_keywords(keywords: list):
 
 
 def init_db():
+    import os
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
